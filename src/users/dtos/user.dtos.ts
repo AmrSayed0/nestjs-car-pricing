@@ -1,5 +1,7 @@
 import { IsEmail, IsString, IsOptional } from 'class-validator';
+import { Expose } from 'class-transformer';
 
+// Data validation DTOs
 export class CreateUserDto {
   @IsEmail()
   email: string;
@@ -16,4 +18,13 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   password: string;
+}
+
+// Data Serialization DTOs
+export class UserResponseDto {
+  @Expose()
+  id: number;
+
+  @Expose()
+  email: string;
 }
