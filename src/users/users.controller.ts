@@ -9,6 +9,7 @@ import {
   Delete,
   NotFoundException,
   Session,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Serialize } from '../interceptors/serialize.interceptor';
@@ -18,6 +19,9 @@ import {
   UpdateUserDto,
   UserResponseDto,
 } from './dtos/user.dtos';
+import { AuthGuard } from '../guards/auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { User } from './user.entity';
 
 interface SessionData {
   userId?: number | null;
@@ -55,13 +59,20 @@ export class UsersController {
     session.userId = null;
     return;
   }
-
   @Get('/whoami')
-  whoAmI(@Session() session: SessionData) {
-    if (!session.userId) {
-      throw new NotFoundException('User ID not found in session');
+  @UseGuards(AuthGuard)
+  whoAmI(@CurrentUser() user: User) {
+    return user;
+  }
+
+  // Example: Protected route to get current user's profile
+  @Get('/me')
+  @UseGuards(AuthGuard)
+  getCurrentUserProfile(@CurrentUser() user: User) {
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
-    return this.usersService.findOne(session.userId);
+    return user;
   }
 
   @Get('/:id')
@@ -84,10 +95,19 @@ export class UsersController {
   removeUser(@Param('id') id: string) {
     return this.usersService.remove(parseInt(id));
   }
-
   @Patch('/:id')
   updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
     const { email, password } = body;
     return this.usersService.update(parseInt(id), { email, password });
+  }
+
+  // Example: Protected route to update current user's own profile
+  @Patch('/me')
+  @UseGuards(AuthGuard)
+  updateCurrentUser(@CurrentUser() user: User, @Body() body: UpdateUserDto) {
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return this.usersService.update(user.id, body);
   }
 }
